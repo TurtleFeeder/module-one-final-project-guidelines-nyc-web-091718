@@ -3,7 +3,7 @@ require_relative '../config/environment'
 
 def url_ending
     ts = Time.now.getutc.to_i
-    binding.pry
+    # binding.pry
 end
 
 url_ending
