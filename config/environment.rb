@@ -1,4 +1,5 @@
 require 'bundler'
+require 'digest'
 # require 'active_record'
 # require 'rake'
 # require 'pry'
