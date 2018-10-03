@@ -18,7 +18,7 @@ def get_hash(url)
 end #end get_hash
 
   #Gets character info hash from character's API
-def get_character_info(character)
+def get_char_info(character)
   url = "https://gateway.marvel.com/v1/public/characters?name=#{character}"
   hash = get_hash(url)
   if hash['data']['results'].empty?
@@ -29,12 +29,12 @@ def get_character_info(character)
 end #end of character_info
 
   #DISPLAYS character name
-def get_character_name(character_hash)
+def get_char_name(character_hash)
   character_hash['data']['results'][0]['name']
 end #end get_character_name
 
   #DISPLAYS character description
-def get_character_description(character_hash)
+def get_char_desc(character_hash)
   description = character_hash['data']['results'][0]['description']
   if description.empty?
     puts "Unfortunately, this character does not have a description."
@@ -44,8 +44,8 @@ def get_character_description(character_hash)
 end #end get_character_description
 
   #DISPLAYS character's TOP 20 comics
-def get_character_comics(character_hash)
-  character_hash['data']['results'][0]['comics']['items'].map {|comic| comic['title']}.uniq
+def get_char_comics(character_hash)
+  character_hash['data']['results'][0]['comics']['items'].map {|comic| comic['name']}.uniq
 end #end get_character_comics
   #Maybe sort the list???
 
