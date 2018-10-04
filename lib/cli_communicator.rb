@@ -1,34 +1,66 @@
 require_relative '../config/environment'
 
+  # CREATION METHODS
   def find_or_create_user(name)
     User.find_or_create_by(name: name)
-  end
+  end #end find_or_create_user
 
   def find_or_create_comic(title)
     Comic.find_or_create_by(title: title)
-  end
+  end #end find_or_create_comic
 
   def find_or_create_reading_list(user_id, comic_id)
     ReadingList.find_or_create_by(user_id: user_id, comic_id: comic_id)
-  end
+  end #end find_or_create_reading_list
 
-  def save_option(char_hash)
+# SAVE INTO DATABASE METHOD
+  def save_comic(comic_title, u1)
+    comic = find_or_create_comic(comic_title)
+    find_or_create_reading_list(u1.id, comic.id)
+  end #end save_comic
+
+  def save_option(user, char_hash)
     puts "Would you like to add a comic to your reading list? (Y/N)"
-    response = gets.chomp
+    response = gets.chomp.upcase
     if response == 'Y'
       puts "Please enter FULL comic title: "
       comic_title = gets.chomp
-      save_comic
+      # create method to validate comic_title
+      c_title = valid_comic_title(comic_title, char_hash, user)
+      u1 = user
+        if c_title == nil
+          prompt_user(u1)
+        else
+        save_comic(c_title, u1)
+        end #end c_title if stmt
     elsif response == "N"
       puts "Returning back to menu..."
-    end
-  end
+    else
+      puts "Invalid Input. Returning to main menu."
+      prompt_user(user)
+    end #end result if stmt
+  end #end save_option
 
-  def save_comic(comic_title, char_hash)
-    # char_hash =
-    find_or_create_comic
-    find_or_create_reading_list
-  end
+# USER PROMPT METHODS
+
+  def request_user_name
+    puts "Please enter your name: "
+    name = gets.chomp
+  end #end request_user_name
+
+  def request_char_name
+    puts "Please enter character name: "
+    char_name = gets.chomp
+  end #end request_char_name
+
+  def list_option
+    puts "Please select a number:
+          1. See List
+          2. Delete Comic From List
+          3. Delete List
+          4. Search By Character Name
+          5. Exit"
+  end #end list_option
 
   def display_list(user)
     u1 = User.find_by name: user
@@ -37,19 +69,7 @@ require_relative '../config/environment'
     else
       u1.reading_lists.each {|rl| puts "Comic Title: #{rl.comic.title}"}
     end
-  end
-
-    # def request_user_name - puts welcome msg & requests for user's name - it would use find_or_create_by to either create a new user or pull up the user's account
-    def request_user_name
-      puts "Please enter your name: "
-      name = gets.chomp
-    end
-
-  # def request_char_name - puts out please enter character name, saves get.chomp into variable, and calls get_character_info on the variable.
-  def request_char_name
-    puts "Please enter character name: "
-    char_name = gets.chomp
-  end
+  end #end display_list
 
   # def display_char_info - calls the get_char_name, get_char_desc, get_char_comics
   def display_char_info(char_hash)
@@ -58,95 +78,83 @@ require_relative '../config/environment'
     puts "#{get_char_desc(char_hash)}"
     puts "COMICS: "
     get_char_comics(char_hash).each {|comic| puts comic}
-  end
+  end #end display_char_info
 
-  # create helper method for workflow to check if character name is valid - if it's not it will go back to prompt_user
-
-  def valid_char_entry(char_name)
+# VALIDATION METHODS
+  def valid_char_entry(char_name, user)
     hash = get_char_info(char_name)
     if hash['data']['results'].empty?
       puts "This character cannot be found."
-      prompt_user
     else
       hash
     end
   end #end valid_char_entry method
 
-  # def request_command - puts what would you like to do? if search it calls search_option method. if reading_list it calls list_option method.
+  def valid_comic_title(comic_title, char_hash, user)
+    comic_array = get_char_comics(char_hash)
+    if comic_array.include?(comic_title) == false
+      puts "This comic title does not exist."
+    else
+      comic_title
+    end
+  end #end valid_char_entry method
 
-    def list_option
-      puts "Please select a number:
-            1. See List
-            2. Delete Comic From List
-            3. Delete List
-            4. Search By Character Name
-            5. Exit"
+  # DELETION METHODS
+    def destroy_comic(selected_RL)
+      ReadingList.destroy(selected_RL)
+      puts "Your comic has been removed from your list."
     end
 
-    # we'll have to move this while loop outside of the list_option method
-    def prompt_user
+    def destroy_list(user)
+      ReadingList.destroy_all(user_id: user)
+      puts "Your reading list has been deleted."
+    end
+
+# RUN METHOD
+    def prompt_user(user)
       list_option
-    choice = ""
+      choice = ""
     while choice == ""
       choice = gets.chomp
       case choice
       when "1"
         display_list(user.name)
-        prompt_user
+        prompt_user(user)
       when "2"
-        #destroy individual record method
-        prompt_user
+        puts "Please enter title of comic you wish to delete."
+        comic_title = gets.chomp
+        # binding.pry
+        if user.comics.map {|comic| comic.title}.include?(comic_title) == false
+          puts "This comic is not in your list. Returning to main menu."
+          prompt_user(user)
+        else
+          selected_comic = user.comics.select{|comic| comic.title == comic_title}[0]
+          selected_RL = ReadingList.all.select {|rl| rl.comic_id == selected_comic.id && rl.user_id == user.id}[0]
+          #delete individual record method
+          destroy_comic(selected_RL)
+        end
+        prompt_user(user)
       when "3"
-        #destroy_all reading_list method
-        prompt_user
+        destroy_list(user)
+        prompt_user(user)
       when "4"
         char_name = request_char_name
-        # combine the get_char_info & the display_char_info into another helper method
-        char_hash = valid_char_entry(char_name)
-        display_char_info(char_hash)
-        save_option(char_hash)
-        # give option to save a comic or not
-        prompt_user
+        char_hash = valid_char_entry(char_name, user)
+        #return value of valid_char_entry will be nil if it puts out the "This character cannot be found."
+        if char_hash == nil
+          prompt_user(user)
+        else
+          display_char_info(char_hash)
+          # give option to save a comic or not
+          save_option(user, char_hash)
+          puts "Comic has been saved."
+        end #end char_hash if stmt
+        prompt_user(user)
       when "5"
-        puts "Goodbye"
+        puts "Goodbye!!!"
         break
-        # TODO: when testing in pry this error popped when exiting the loop - why?
-# NoMethodError: undefined method `[]' for nil:NilClass from /Users/tiff/Development/mod1_labs/module-one-final-project-guidelines-nyc-web-091718/lib/api_communicator.rb:28:in `get_char_name'
       else
         list_option
-      end
-    end
-
-  end #end prompt_user method
-  # binding.pry
-
-
-# define method to save comic selected by user into their reading list
-  # def find_or_create_user using the find_or_create_by() method **DONE TODO**
-  # def find_or_create_comic using the find_or_create_by() method **DONE TODO**
-  # def find_or_create_reading_list using the find_or_create_by() method **DONE TODO**
-
-# define methods for reading_list section in request_command method
-  # def display_list method - displays titles of comics **DONE TODO**
-
-# define method to prompt user in CLI
-  # def request_user_name - puts welcome msg & requests for user's name - it would use find_or_create_by to either create a new user or pull up the user's account **DONE TODO**
-  # def request_command - puts what would you like to do? if search it calls search_option method. if reading_list it calls list_option method.
-  # def search_option method - puts out what would you like to search by? 'character', 'comic title', 'series title' HACK **JUMP STRAIGHT TO GET_CHAR_NAME**
-  # def list_option method - puts out please choose one: 'see list', 'delete from list', 'delete list'
-    # see list - calls display_list method
-  # def request_char_name - puts out please enter character name, saves get.chomp into variable, and calls get_character_info on the variable. **DONE TODO**
-  # def display_char_info - calls the get_char_name, get_char_desc, get_char_comics **DONE TODO**
-  # def add_comic_option - ask user if they want to add comic to their list.
-    # YES - prompt user for comic title - check if title is included in the return array of get_char_comics
-      # if it is included then call find_or_create_comic method & find_or_create_reading_list method
-        # puts display_list method
-        # ask user if they want to add another comic from this search
-          # YES - returns to add_comic_option method
-          # NO - ask user if they want to start a new search
-            # YES - returns to search_option method
-            # NO - EXIT
-      # if it's not prompt user to input valid comic title
-    # NO - ask user if they want to start a new search
-      # YES - returns to search_option method
-      # NO - EXIT
+      end #end case-when stmt
+    end #end while loop
+  end #end prompt_user(user) method
