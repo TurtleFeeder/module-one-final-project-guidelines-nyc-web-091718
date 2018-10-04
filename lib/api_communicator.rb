@@ -21,11 +21,6 @@ end #end get_hash
 def get_char_info(character)
   url = "https://gateway.marvel.com/v1/public/characters?name=#{character}"
   hash = get_hash(url)
-  if hash['data']['results'].empty?
-    puts "This character cannot be found."
-  else
-    hash
-  end
 end #end of character_info
 
   #DISPLAYS character name
@@ -48,6 +43,9 @@ def get_char_comics(character_hash)
   character_hash['data']['results'][0]['comics']['items'].map {|comic| comic['name']}.uniq
 end #end get_character_comics
   #Maybe sort the list???
+  def get_char_series(char_hash)
+    char_hash['data']['results'][0]['series']
+  end
 
 def get_comic_info(comic)
   url = "https://gateway.marvel.com:443/v1/public/comics?title=#{comic}"
